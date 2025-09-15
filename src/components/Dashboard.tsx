@@ -10,7 +10,7 @@ import SalesManagementDashboard from './dashboards/SalesManagementDashboard';
 interface DashboardProps {
   user: UserType;
   department: Department;
-  division: Division;
+  division?: Division;
   onLogout: () => void;
   t: (key: string) => string;
   language: string;
@@ -92,7 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <h2 className="text-lg font-semibold text-gray-900">
-                Tableau de bord - {department.nameFr} | {division.nameFr}
+                Tableau de bord - {department.nameFr} {division ? `| ${division.nameFr}` : ''}
               </h2>
             </div>
             

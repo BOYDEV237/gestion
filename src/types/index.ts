@@ -49,6 +49,7 @@ export interface Office {
   nameEn: string;
   nameFr: string;
   description: string;
+  location: string;
   descriptionEn: string;
   image: string;
   color: string;

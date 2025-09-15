@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -12,14 +12,7 @@ import {
   Scale, 
   Map, 
   FileCheck, 
-  CreditCard, 
-  Handshake, 
-  Network, 
-  Shield, 
-  TrendingUp, 
-  Home,
   Eye,
-  ChevronRight,
   Phone,
   Mail,
   Clock,
@@ -27,174 +20,22 @@ import {
   User,
   Building
 } from 'lucide-react';
-import { DEPARTMENTS } from '../constants';
 import { Language } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
 import AnimatedBackground from './AnimatedBackground';
 
-interface DepartmentDetailProps {
-  departmentId: string;
+interface GFCDepartmentDetailProps {
   onBack: () => void;
   language: Language;
   setLanguage: (lang: Language) => void;
 }
 
-const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
-  departmentId,
+const GFCDepartmentDetail: React.FC<GFCDepartmentDetailProps> = ({
   onBack,
   language,
   setLanguage
 }) => {
   const [activeSection, setActiveSection] = useState('overview');
-  const department = DEPARTMENTS.find(d => d.id === departmentId);
-
-  if (!department) {
-    return null;
-  }
-
-  // Financing department specific content
-  const financingOffers = {
-    fr: [
-      {
-        id: 'avance-financement',
-        title: '🏗️ Avance de Financement Remboursable',
-        description: 'GeoCasa vous apporte temporairement des fonds pour débloquer une étape de votre projet (ex. : frais de lotissement, immatriculation, bornage, achat de terrain).',
-        conditions: [
-          'Signature d\'une convention d\'avance',
-          'Apport personnel recommandé',
-          'Garantie foncière ou contractuelle exigée',
-          'Remboursement échelonné sur 3 à 12 mois'
-        ],
-        target: 'Propriétaires, promoteurs, héritiers, exploitants fonciers',
-        duration: '3-12 mois',
-        cost: 'Variable selon projet'
-      },
-      {
-        id: 'portage-foncier',
-        title: '🤝 Portage Foncier / Immobilier',
-        description: 'GeoCasa Group acquiert ou prend temporairement en charge un bien foncier ou immobilier, le valorise (lotissement, titre foncier, construction), puis le revend ou partage les produits.',
-        conditions: [
-          'Contrat de portage précisant durée, rôle de chacun et prix de revente',
-          'Possibilité de rachat prioritaire par le propriétaire initial',
-          'Partage des risques et bénéfices selon le modèle établi'
-        ],
-        target: 'Héritiers, propriétaires sans moyens, terrains bloqués ou en indivision',
-        duration: '6-24 mois',
-        cost: 'Partage des bénéfices'
-      },
-      {
-        id: 'partenariat-developpement',
-        title: '🧠 Partenariat de Développement Foncier ou Immobilier',
-        description: 'GeoCasa Group s\'associe avec un propriétaire ou promoteur pour réaliser un projet (lotissement, immeuble, cité, projet agricole ou agro-industriel).',
-        conditions: [
-          'Partage des apports (terrain, capital, ingénierie)',
-          'Répartition claire des bénéfices, du foncier ou des produits',
-          'Signature d\'un protocole d\'accord'
-        ],
-        target: 'Propriétaires, promoteurs en recherche de partenaires',
-        duration: '12-36 mois',
-        cost: 'Partage selon accord'
-      },
-      {
-        id: 'assistance-technique',
-        title: '📄 Assistance Technique & Juridique Personnalisée',
-        description: 'Vous disposez d\'un projet mais avez besoin d\'un accompagnement administratif, foncier ou juridique pour le structurer, le rendre finançable ou le protéger.',
-        conditions: [
-          'Études de faisabilité foncière',
-          'Plans de montage juridique (portage, indivision, succession, GIC, SCI, etc.)',
-          'Dossiers de financement ou de partenariat',
-          'Représentation auprès des services de l\'État'
-        ],
-        target: 'Facilitateurs, promoteurs, copropriétaires, exploitants fonciers',
-        duration: '1-6 mois',
-        cost: '50,000 - 200,000 FCFA'
-      },
-      {
-        id: 'accompagnement-complet',
-        title: '🧾 Accompagnement Complet sur Projet Clé-en-main',
-        description: 'GeoCasa prend en charge l\'ensemble du projet : études, financement, procédures, suivi, jusqu\'à la livraison ou la vente.',
-        conditions: [
-          'Études préalables et budget',
-          'Montage financier et juridique',
-          'Pilotage administratif et technique',
-          'Vente finale ou mise en valeur'
-        ],
-        target: 'Promoteurs, investisseurs passifs, héritiers à l\'étranger, collectivités',
-        duration: '12-48 mois',
-        cost: 'Selon projet'
-      }
-    ],
-    en: [
-      {
-        id: 'financing-advance',
-        title: '🏗️ Repayable Financing Advance',
-        description: 'GeoCasa temporarily provides you with funds to unlock a stage of your project (e.g.: subdivision fees, registration, boundary marking, land purchase).',
-        conditions: [
-          'Signing of an advance agreement',
-          'Personal contribution recommended',
-          'Land or contractual guarantee required',
-          'Staggered repayment over 3 to 12 months'
-        ],
-        target: 'Owners, developers, heirs, land operators',
-        duration: '3-12 months',
-        cost: 'Variable according to project'
-      },
-      {
-        id: 'land-holding',
-        title: '🤝 Land / Real Estate Holding',
-        description: 'GeoCasa Group acquires or temporarily takes charge of a land or real estate asset, enhances it (subdivision, land title, construction), then resells it or shares the proceeds.',
-        conditions: [
-          'Holding contract specifying duration, role of each party and resale price',
-          'Possibility of priority buyback by the initial owner',
-          'Sharing of risks and benefits according to the established model'
-        ],
-        target: 'Heirs, owners without means, blocked or jointly owned land',
-        duration: '6-24 months',
-        cost: 'Profit sharing'
-      },
-      {
-        id: 'development-partnership',
-        title: '🧠 Land or Real Estate Development Partnership',
-        description: 'GeoCasa Group partners with an owner or developer to carry out a project (subdivision, building, housing estate, agricultural or agro-industrial project).',
-        conditions: [
-          'Sharing of contributions (land, capital, engineering)',
-          'Clear distribution of profits, land or products',
-          'Signing of a protocol agreement'
-        ],
-        target: 'Owners, developers looking for partners',
-        duration: '12-36 months',
-        cost: 'Sharing according to agreement'
-      },
-      {
-        id: 'technical-assistance',
-        title: '📄 Personalized Technical & Legal Assistance',
-        description: 'You have a project but need administrative, land or legal support to structure it, make it financeable or protect it.',
-        conditions: [
-          'Land feasibility studies',
-          'Legal structuring plans (holding, joint ownership, succession, GIC, SCI, etc.)',
-          'Financing or partnership files',
-          'Representation with State services'
-        ],
-        target: 'Facilitators, developers, co-owners, land operators',
-        duration: '1-6 months',
-        cost: '50,000 - 200,000 FCFA'
-      },
-      {
-        id: 'complete-support',
-        title: '🧾 Complete Turnkey Project Support',
-        description: 'GeoCasa takes charge of the entire project: studies, financing, procedures, monitoring, until delivery or sale.',
-        conditions: [
-          'Preliminary studies and budget',
-          'Financial and legal structuring',
-          'Administrative and technical management',
-          'Final sale or enhancement'
-        ],
-        target: 'Developers, passive investors, heirs abroad, communities',
-        duration: '12-48 months',
-        cost: 'According to project'
-      }
-    ]
-  };
 
   // Land Management Procedures Data
   const landProcedures = {
@@ -237,7 +78,7 @@ const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
         descriptionEn: 'Mutual agreement refers to a land transaction between two parties, whether between private or public entities. It is a contract in the form of an amicable transaction for specific lands.',
         duration: '2-4 mois',
         cost: '100,000 - 250,000 FCFA',
-        icon: Handshake
+        icon: Building2
       }
     ],
     cadastral: [
@@ -405,12 +246,7 @@ const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
     '/IMG-20250911-WA0003.jpg',
     '/IMG-20250911-WA0004.jpg',
     '/IMG-20250911-WA0005.jpg',
-    '/IMG-20250911-WA0006.jpg',
-    '/IMG-20250911-WA0007.jpg',
-    '/IMG-20250911-WA0008.jpg',
-    '/IMG-20250911-WA0009.jpg',
-    '/IMG-20250911-WA0010.jpg',
-    '/IMG-20250911-WA0011.jpg'
+    '/IMG-20250911-WA0006.jpg'
   ];
 
   const renderOverview = () => (
@@ -418,43 +254,27 @@ const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
       {/* Department Header */}
       <div className="text-center">
         <div className="flex items-center justify-center mb-8">
-          <div className={`w-24 h-24 ${department.color} rounded-3xl flex items-center justify-center shadow-2xl`}>
-            {department.id === 'financing' ? (
-              <CreditCard className="w-12 h-12 text-white" />
-            ) : (
-              <MapPin className="w-12 h-12 text-white" />
-            )}
+          <div className="w-24 h-24 bg-blue-700 rounded-3xl flex items-center justify-center shadow-2xl">
+            <MapPin className="w-12 h-12 text-white" />
           </div>
         </div>
         <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
           <span className="bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
-            {language === 'en' ? department.nameEn : department.nameFr}
+            {language === 'en' ? 'Land and Cadastral Management Department' : 'Département Gestion Foncière et Cadastrale'}
           </span>
         </h1>
         <div className="w-32 h-1 bg-gradient-to-r from-blue-400 to-orange-400 rounded-full mx-auto mb-8"></div>
         <p className="text-xl lg:text-2xl text-blue-100 leading-relaxed max-w-4xl mx-auto">
-          {language === 'en' ? department.descriptionEn : department.description}
+          {language === 'en' 
+            ? 'Complete expertise in land and cadastral management with specialized legal and technical services for all your real estate needs.'
+            : 'Expertise complète en gestion foncière et cadastrale avec des services juridiques et techniques spécialisés pour tous vos besoins immobiliers.'
+          }
         </p>
-        
-        {/* Financing Department Objective */}
-        {department.id === 'financing' && (
-          <div className="mt-12 bg-white/10 backdrop-blur-2xl rounded-2xl p-8 border border-white/30 shadow-xl max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-white mb-4">
-              🎯 {language === 'en' ? 'Objective of our offers' : 'Objectif de nos offres'}
-            </h3>
-            <p className="text-blue-100 text-lg leading-relaxed">
-              {language === 'en' 
-                ? 'Support project holders in land and real estate by offering adapted solutions for financing, legal structuring, project development and strategic partnership.'
-                : 'Accompagner les porteurs de projets fonciers et immobiliers en proposant des solutions adaptées de financement, de structuration juridique, de montage de projet et de partenariat stratégique.'
-              }
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Image Gallery */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {availableImages.slice(0, 6).map((image, index) => (
+        {availableImages.map((image, index) => (
           <div key={index} className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-2xl transform rotate-1 scale-105 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
             <div className="relative bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/30 shadow-xl">
@@ -848,7 +668,7 @@ const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
                 </span>
               </div>
             </div>
-            <p className="font-medium">GeoCasa Group - {department.nameFr}</p>
+            <p className="font-medium">GeoCasa Group - Département Gestion Foncière et Cadastrale</p>
             <p>Yaoundé, Cameroun • +237 6XX XXX XXX</p>
           </div>
         </div>
@@ -857,4 +677,4 @@ const DepartmentDetail: React.FC<DepartmentDetailProps> = ({
   );
 };
 
-export default DepartmentDetail;
+export default GFCDepartmentDetail;

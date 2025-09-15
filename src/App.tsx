@@ -7,7 +7,9 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import LoginForm from './components/LoginForm';
 import UnifiedSelector from './components/UnifiedSelector';
 import DivisionDetail from './components/DivisionDetail';
-import DepartmentDetail from './components/DepartmentDetail';
+import GFCDepartmentDetail from './components/GFCDepartmentDetail';
+import FFIDepartmentDetail from './components/FFIDepartmentDetail';
+import VGIDepartmentDetail from './components/VGIDepartmentDetail';
 import Dashboard from './components/Dashboard';
 import OfficeDashboard from './components/OfficeDashboard';
 import { COMPANY_INFO } from './constants';
@@ -23,24 +25,53 @@ function App() {
     await login(credentials);
   };
 
-  const handleDepartmentSelect = (department: Department) => {
-    selectDepartment(department);
-    // Navigate to dashboard after selecting department
-  };
 
   const handleOfficeSelect = (officeId: string) => {
     setSelectedOffice(officeId);
+    setShowDivisionDetail(null); // Close division detail when selecting office
+    selectOffice(officeId);
   };
+
+  const handleDepartmentSelect = (department: any) => {
+    selectDepartment(department);
+  };
+
   // Show department detail if requested
   if (showDepartmentDetail) {
-    return (
-      <DepartmentDetail
-        departmentId={showDepartmentDetail}
-        onBack={() => setShowDepartmentDetail(null)}
-        language={language}
-        setLanguage={setLanguage}
-      />
-    );
+    switch (showDepartmentDetail) {
+      case 'land-cadastral':
+        return (
+          <GFCDepartmentDetail
+            onBack={() => setShowDepartmentDetail(null)}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        );
+      case 'financing':
+        return (
+          <FFIDepartmentDetail
+            onBack={() => setShowDepartmentDetail(null)}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        );
+      case 'sales-management':
+        return (
+          <VGIDepartmentDetail
+            onBack={() => setShowDepartmentDetail(null)}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        );
+      default:
+        return (
+          <GFCDepartmentDetail
+            onBack={() => setShowDepartmentDetail(null)}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        );
+    }
   }
 
   // Show division detail if requested
@@ -70,12 +101,12 @@ function App() {
     );
   }
   // Show dashboard if user is logged in and has selected a department
-  if (user && user.currentDepartment && user.currentDivision) {
+  if (user && user.currentDepartment) {
     return (
       <Dashboard
         user={user}
         department={user.currentDepartment}
-        division={user.currentDivision}
+        division={user.currentDivision!}
         onLogout={logout}
         t={t}
         language={language}

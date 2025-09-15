@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight,
   Award, 
   Briefcase,
   Building, 
   Calendar,
+  Clock,
   Eye,
   Mail,
   MapPin,
   Phone,
   Star,
   User as UserIcon,
-  Users
+  Users,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { Department, Division, User } from '../types';
+import { Department, Division, User, Office } from '../types';
 import AnimatedBackground from './AnimatedBackground';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -23,6 +26,7 @@ interface UnifiedSelectorProps {
   divisions: Division[];
   onSelectDepartment: (department: Department) => void;
   onSelectDivision: (division: Division) => void;
+  onSelectOffice: (office: Office) => void;
   onShowDepartmentDetail: (departmentId: string) => void;
   onShowDivisionDetail: (divisionId: string) => void;
   onLogout: () => void;
@@ -37,6 +41,7 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
   divisions,
   onSelectDepartment,
   onSelectDivision,
+  onSelectOffice,
   onShowDepartmentDetail,
   onShowDivisionDetail,
   onLogout,
@@ -45,6 +50,38 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
   setLanguage
 }) => {
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentDivisionPage, setCurrentDivisionPage] = useState(1);
+  const [currentOfficePage, setCurrentOfficePage] = useState(1);
+  const [selectedDivision, setSelectedDivision] = useState<Division | null>(null);
+  const [showDivisionOffices, setShowDivisionOffices] = useState(false);
+  const divisionsPerPage = 1;
+  const officesPerPage = 5;
+
+  // Update time every second
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    });
+  };
 
   // Complete icon mapping for departments
   const iconMap = {
@@ -56,7 +93,52 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
     ArrowRight: ArrowRight,
     Briefcase: Briefcase,
     Eye: Eye,
-    Mail: Mail
+  };
+
+  // Division pagination
+  const indexOfLastDivision = currentDivisionPage * divisionsPerPage;
+  const indexOfFirstDivision = indexOfLastDivision - divisionsPerPage;
+  const currentDivisions = divisions.slice(indexOfFirstDivision, indexOfLastDivision);
+  const totalDivisionPages = Math.ceil(divisions.length / divisionsPerPage);
+
+  const nextDivisionPage = () => {
+    if (currentDivisionPage < totalDivisionPages) {
+      setCurrentDivisionPage(currentDivisionPage + 1);
+    }
+  };
+
+  const prevDivisionPage = () => {
+    if (currentDivisionPage > 1) {
+      setCurrentDivisionPage(currentDivisionPage - 1);
+    }
+  };
+
+  // Office pagination
+  const indexOfLastOffice = currentOfficePage * officesPerPage;
+  const indexOfFirstOffice = indexOfLastOffice - officesPerPage;
+  const currentOffices = selectedDivision 
+    ? selectedDivision.offices.slice(indexOfFirstOffice, indexOfLastOffice) 
+    : [];
+  const totalOfficePages = selectedDivision 
+    ? Math.ceil(selectedDivision.offices.length / officesPerPage) 
+    : 0;
+
+  const nextOfficePage = () => {
+    if (currentOfficePage < totalOfficePages) {
+      setCurrentOfficePage(currentOfficePage + 1);
+    }
+  };
+
+  const prevOfficePage = () => {
+    if (currentOfficePage > 1) {
+      setCurrentOfficePage(currentOfficePage - 1);
+    }
+  };
+
+  const handleShowDivisionOffices = (division: Division) => {
+    setSelectedDivision(division);
+    setShowDivisionOffices(true);
+    setCurrentOfficePage(1);
   };
 
   return (
@@ -66,6 +148,33 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
       {/* Language Switcher and Logout - Top Right */}
       <div className="absolute top-6 right-6 z-20">
         <div className="flex items-center space-x-4">
+          {/* Time and Date Display */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/30 shadow-lg">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-5 h-5 text-white animate-pulse" />
+                <div className="text-center">
+                  <div className="text-lg font-bold text-white font-mono">
+                    {formatTime(currentTime)}
+                  </div>
+                  <div className="text-xs text-white/80">Heure</div>
+                </div>
+              </div>
+              
+              <div className="w-px h-8 bg-white/30"></div>
+              
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-white" />
+                <div className="text-center">
+                  <div className="text-sm font-semibold text-white capitalize">
+                    {formatDate(currentTime)}
+                  </div>
+                  <div className="text-xs text-white/80">Date</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <LanguageSwitcher language={language as any} onLanguageChange={setLanguage as any} />
           <button
             onClick={onLogout}
@@ -168,11 +277,13 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
                 return (
                   <div
                     key={department.id}
-                    onClick={() => onSelectDepartment(department)}
                     className="group cursor-pointer transform transition-all duration-500 hover:scale-105"
                     style={{ animationDelay: `${index * 0.2}s` }}
                   >
-                    <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-8 border border-white border-opacity-20 hover:bg-opacity-20 hover:border-opacity-40 transition-all duration-300 shadow-2xl">
+                    <div 
+                      onClick={() => onSelectDepartment(department)}
+                      className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-8 border border-white border-opacity-20 hover:bg-opacity-20 hover:border-opacity-40 transition-all duration-300 shadow-2xl"
+                    >
                       <div className="flex flex-col items-center text-center space-y-6">
                         {/* Department Icon */}
                         <div className={`w-20 h-20 ${department.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
@@ -216,95 +327,216 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
               <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-orange-400 rounded-full mx-auto mt-4"></div>
             </div>
 
-            <div className="space-y-12">
-              {divisions.map((division, index) => (
-                <div
-                  key={division.id}
-                  className={`grid grid-cols-1 lg:grid-cols-2 gap-8 items-center animate-fadeIn ${
-                    index % 2 === 0 ? '' : 'lg:grid-flow-col-dense'
-                  }`}
-                  style={{ animationDelay: `${index * 0.3}s` }}
+            {/* Division Pagination Controls */}
+            {divisions.length > 0 && (
+              <div className="flex justify-center items-center mb-8 space-x-4">
+                <button
+                  onClick={prevDivisionPage}
+                  disabled={currentDivisionPage === 1}
+                  className={`p-3 rounded-full ${currentDivisionPage === 1 
+                    ? 'bg-gray-400/30 cursor-not-allowed' 
+                    : 'bg-white/10 hover:bg-white/20'} transition-colors`}
                 >
-                  {/* Division Image */}
-                  <div className={`${index % 2 === 0 ? 'lg:order-1' : 'lg:order-2'}`}>
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-[3rem] transform rotate-2 scale-105"></div>
-                      <div className="relative bg-white/10 backdrop-blur-2xl rounded-[3rem] p-6 border border-white/30 shadow-2xl">
-                        <img
-                          src={division.image}
-                          alt={language === 'en' ? division.nameEn : division.nameFr}
-                          className="w-full h-64 object-cover rounded-2xl shadow-lg"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Division+Image';
-                          }}
-                        />
-                        
-                        {/* Stats Overlay */}
-                        <div className="absolute bottom-2 left-2 right-2">
-                          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-3">
-                            <div className="grid grid-cols-3 gap-3 text-center">
-                              <div>
-                                <Users className="w-4 h-4 text-purple-600 mx-auto mb-1" />
-                                <div className="text-lg font-bold text-gray-900">15+</div>
-                                <div className="text-xs text-gray-600">Personnel</div>
-                              </div>
-                              <div>
-                                <Award className="w-4 h-4 text-pink-600 mx-auto mb-1" />
-                                <div className="text-lg font-bold text-gray-900">8+</div>
-                                <div className="text-xs text-gray-600">Années</div>
-                              </div>
-                              <div>
-                                <Star className="w-4 h-4 text-yellow-600 mx-auto mb-1" />
-                                <div className="text-lg font-bold text-gray-900">95%</div>
-                                <div className="text-xs text-gray-600">Efficacité</div>
+                  <ChevronLeft className="w-6 h-6 text-white" />
+                </button>
+                
+                <span className="text-white font-medium text-lg">
+                  {currentDivisionPage} / {totalDivisionPages}
+                </span>
+                
+                <button
+                  onClick={nextDivisionPage}
+                  disabled={currentDivisionPage === totalDivisionPages}
+                  className={`p-3 rounded-full ${currentDivisionPage === totalDivisionPages 
+                    ? 'bg-gray-400/30 cursor-not-allowed' 
+                    : 'bg-white/10 hover:bg-white/20'} transition-colors`}
+                >
+                  <ChevronRight className="w-6 h-6 text-white" />
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-12">
+              {currentDivisions.map((division, index) => {
+                // For the first division (index 0): Description on left, picture on right
+                // For the second division (index 1): Picture on left, description on right
+                // And so on alternating...
+                const isEvenIndex = index % 2 === 0;
+                
+                return (
+                  <div
+                    key={division.id}
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center animate-fadeIn"
+                    style={{ animationDelay: `${index * 0.3}s` }}
+                  >
+                    {/* For even indices (0, 2, 4...): Description first, then picture */}
+                    {isEvenIndex ? (
+                      <>
+                        {/* Division Information (Left side) */}
+                        <div className="text-white space-y-6">
+                          <div>
+                            <div className={`w-12 h-12 ${division.color} rounded-2xl flex items-center justify-center mb-4 shadow-lg`}>
+                              <Building className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">
+                              <span className="bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
+                                {language === 'en' ? division.nameEn : division.nameFr}
+                              </span>
+                            </h3>
+                            <div className="w-20 h-1 bg-gradient-to-r from-orange-400 to-blue-400 rounded-full mb-6"></div>
+                            <p className="text-xl text-blue-100 leading-relaxed mb-6">
+                              {language === 'en' ? division.descriptionEn : division.description}
+                            </p>
+                            <div className="text-sm text-blue-200 mb-6">
+                              <span className="font-semibold">{division.offices.length} bureaux spécialisés</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            <button
+                              onClick={() => onSelectDivision(division)}
+                              className="bg-gradient-to-r from-orange-500 to-blue-900 hover:from-blue-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-xl hover:shadow-2xl transform hover:scale-105"
+                            >
+                              <span className="text-lg">Sélectionner Division</span>
+                              <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
+                            </button>
+                            <button
+                              onClick={() => handleShowDivisionOffices(division)}
+                              className="bg-white/10 hover:bg-white/20 text-white font-medium py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 border border-white/30 hover:border-white/50"
+                            >
+                              <Eye className="w-5 h-5" />
+                              <span>Voir bureaux</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Division Image (Right side) */}
+                        <div>
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-[3rem] transform rotate-2 scale-105"></div>
+                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-[3rem] p-6 border border-white/30 shadow-2xl">
+                              <img
+                                src={division.image}
+                                alt={language === 'en' ? division.nameEn : division.nameFr}
+                                className="w-full h-64 object-cover rounded-2xl shadow-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Division+Image';
+                                }}
+                              />
+                              
+                              {/* Stats Overlay */}
+                              <div className="absolute bottom-2 left-2 right-2">
+                                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-3">
+                                  <div className="grid grid-cols-3 gap-3 text-center">
+                                    <div>
+                                      <Users className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">15+</div>
+                                      <div className="text-xs text-gray-600">Personnel</div>
+                                    </div>
+                                    <div>
+                                      <Award className="w-4 h-4 text-pink-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">8+</div>
+                                      <div className="text-xs text-gray-600">Années</div>
+                                    </div>
+                                    <div>
+                                      <Star className="w-4 h-4 text-yellow-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">95%</div>
+                                      <div className="text-xs text-gray-600">Efficacité</div>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      </>
+                    ) : (
+                      /* For odd indices (1, 3, 5...): Picture first, then description */
+                      <>
+                        {/* Division Image (Left side) */}
+                        <div>
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-[3rem] transform rotate-2 scale-105"></div>
+                            <div className="relative bg-white/10 backdrop-blur-2xl rounded-[3rem] p-6 border border-white/30 shadow-2xl">
+                              <img
+                                src={division.image}
+                                alt={language === 'en' ? division.nameEn : division.nameFr}
+                                className="w-full h-64 object-cover rounded-2xl shadow-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Division+Image';
+                                }}
+                              />
+                              
+                              {/* Stats Overlay */}
+                              <div className="absolute bottom-2 left-2 right-2">
+                                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-3">
+                                  <div className="grid grid-cols-3 gap-3 text-center">
+                                    <div>
+                                      <Users className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">15+</div>
+                                      <div className="text-xs text-gray-600">Personnel</div>
+                                    </div>
+                                    <div>
+                                      <Award className="w-4 h-4 text-pink-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">8+</div>
+                                      <div className="text-xs text-gray-600">Années</div>
+                                    </div>
+                                    <div>
+                                      <Star className="w-4 h-4 text-yellow-600 mx-auto mb-1" />
+                                      <div className="text-lg font-bold text-gray-900">95%</div>
+                                      <div className="text-xs text-gray-600">Efficacité</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                  {/* Division Information */}
-                  <div className={`text-white space-y-6 ${index % 2 === 0 ? 'lg:order-2' : 'lg:order-1'}`}>
-                    <div>
-                      <div className={`w-12 h-12 ${division.color} rounded-2xl flex items-center justify-center mb-4 shadow-lg`}>
-                        <Building className="w-6 h-6 text-white" />
-                      </div>
-                      <h3 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                        <span className="bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
-                          {language === 'en' ? division.nameEn : division.nameFr}
-                        </span>
-                      </h3>
-                      <div className="w-20 h-1 bg-gradient-to-r from-orange-400 to-blue-400 rounded-full mb-6"></div>
-                      <p className="text-xl text-blue-100 leading-relaxed mb-6">
-                        {language === 'en' ? division.descriptionEn : division.description}
-                      </p>
-                      <div className="text-sm text-blue-200 mb-6">
-                        <span className="font-semibold">{division.offices.length} bureaux spécialisés</span>
-                      </div>
-                    </div>
+                        {/* Division Information (Right side) */}
+                        <div className="text-white space-y-6">
+                          <div>
+                            <div className={`w-12 h-12 ${division.color} rounded-2xl flex items-center justify-center mb-4 shadow-lg`}>
+                              <Building className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">
+                              <span className="bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
+                                {language === 'en' ? division.nameEn : division.nameFr}
+                              </span>
+                            </h3>
+                            <div className="w-20 h-1 bg-gradient-to-r from-orange-400 to-blue-400 rounded-full mb-6"></div>
+                            <p className="text-xl text-blue-100 leading-relaxed mb-6">
+                              {language === 'en' ? division.descriptionEn : division.description}
+                            </p>
+                            <div className="text-sm text-blue-200 mb-6">
+                              <span className="font-semibold">{division.offices.length} bureaux spécialisés</span>
+                            </div>
+                          </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <button
-                        onClick={() => onSelectDivision(division)}
-                        className="bg-gradient-to-r from-orange-500 to-blue-900 hover:from-blue-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-xl hover:shadow-2xl transform hover:scale-105"
-                      >
-                        <span className="text-lg">Sélectionner Division</span>
-                        <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
-                      </button>
-                      <button
-                        onClick={() => onShowDivisionDetail(division.id)}
-                        className="bg-white/10 hover:bg-white/20 text-white font-medium py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 border border-white/30 hover:border-white/50"
-                      >
-                        <Eye className="w-5 h-5" />
-                        <span>Voir bureaux</span>
-                      </button>
-                    </div>
+                          {/* Action Buttons */}
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            <button
+                              onClick={() => onSelectDivision(division)}
+                              className="bg-gradient-to-r from-orange-500 to-blue-900 hover:from-blue-700 hover:to-orange-700 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-xl hover:shadow-2xl transform hover:scale-105"
+                            >
+                              <span className="text-lg">Sélectionner Division</span>
+                              <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
+                            </button>
+                            <button
+                              onClick={() => handleShowDivisionOffices(division)}
+                              className="bg-white/10 hover:bg-white/20 text-white font-medium py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 border border-white/30 hover:border-white/50"
+                            >
+                              <Eye className="w-5 h-5" />
+                              <span>Voir bureaux</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -325,6 +557,105 @@ const UnifiedSelector: React.FC<UnifiedSelectorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Division Offices Modal */}
+      {showDivisionOffices && selectedDivision && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-3xl p-8 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6">
+                  <div className={`w-16 h-16 ${selectedDivision.color} rounded-2xl flex items-center justify-center shadow-lg`}>
+                    <Building className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold">
+                      {language === 'en' ? selectedDivision.nameEn : selectedDivision.nameFr}
+                    </h2>
+                    <p className="text-blue-100 text-lg">
+                      {selectedDivision.offices.length} {language === 'en' ? 'offices' : 'bureaux'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDivisionOffices(false)}
+                  className="text-white hover:text-gray-200 text-3xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Bureaux de la Division</h3>
+              
+              {/* Offices List */}
+              <div className="space-y-4 mb-6">
+                {currentOffices.map((office, index) => (
+                  <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-2">{office.name}</h4>
+                        <p className="text-sm text-gray-600 mb-3">{office.description}</p>
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          <MapPin className="w-4 h-4" />
+                          <span>{office.location || "Yaoundé, Cameroun"}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => onSelectOffice(office)}
+                        className="ml-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center space-x-2"
+                      >
+                        <span>Sélectionner</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Office Pagination Controls */}
+              {selectedDivision.offices.length > officesPerPage && (
+                <div className="flex justify-center items-center mb-6 space-x-4">
+                  <button
+                    onClick={prevOfficePage}
+                    disabled={currentOfficePage === 1}
+                    className={`p-2 rounded-full ${currentOfficePage === 1 
+                      ? 'bg-gray-300 cursor-not-allowed' 
+                      : 'bg-blue-100 hover:bg-blue-200'} transition-colors`}
+                  >
+                    <ChevronLeft className="w-5 h-5 text-gray-700" />
+                  </button>
+                  
+                  <span className="text-gray-700 font-medium">
+                    {currentOfficePage} / {totalOfficePages}
+                  </span>
+                  
+                  <button
+                    onClick={nextOfficePage}
+                    disabled={currentOfficePage === totalOfficePages}
+                    className={`p-2 rounded-full ${currentOfficePage === totalOfficePages 
+                      ? 'bg-gray-300 cursor-not-allowed' 
+                      : 'bg-blue-100 hover:bg-blue-200'} transition-colors`}
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-700" />
+                  </button>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowDivisionOffices(false)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User Details Modal */}
       {showUserDetails && (
